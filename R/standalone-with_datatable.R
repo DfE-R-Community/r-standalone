@@ -4,7 +4,7 @@
 # last-updated: 2023-06-27
 # license: https://unlicense.org
 # dependencies: 
-# imports: [rlang, dplyr, dtplyr]
+# imports: [rlang, cli, dplyr, dtplyr]
 # ---
 
 #' Run a function using data.table
@@ -29,13 +29,13 @@
 #' iris |> 
 #'   with_datatable(\(x) {
 #'     x |> 
-#'       mutate(
+#'       dplyr::mutate(
 #'         Sepal.Area = Sepal.Length * Sepal.Width,
-#'         Petal.Area = Petal.Area * Petal.Width
+#'         Petal.Area = Petal.Length * Petal.Width
 #'       ) |> 
-#'       summarise(
+#'       dplyr::summarise(
 #'         .by = Species,
-#'         across(c(Sepal.Area, Petal.Area), mean)
+#'         dplyr::across(c(Sepal.Area, Petal.Area), mean)
 #'       )
 #'   })
 with_datatable <- function(x, f, ...) {
@@ -48,7 +48,8 @@ with_datatable <- function(x, f, ...) {
       "Some {.pkg dplyr} code will be run using {.pkg data.table}",
       i = "Use {.code options(use_datatable = FALSE)} to turn off this behaviour"
     ),
-    .frequency = "once"
+    .frequency = "once",
+    .frequency_id = "use_datatable"
   )
   
   if (!getOption("use_datatable", TRUE)) {
@@ -56,14 +57,13 @@ with_datatable <- function(x, f, ...) {
   }
   
   fall_back_to_dplyr <- function(type) {
-    function(x) {
+    function(cond) {
       cli::cli_warn(
         c(
           "Could not use {.pkg data.table} to run code",
           i = "{.pkg dplyr} was used instead",
-          i = "Using {.pkg dtplyr} gave the following {type}: {x$message}"
-        ),
-        .envir = rlang::caller_env()
+          i = "Using {.pkg dtplyr} gave the following {type}: {.code {cond$message}}"
+        )
       )
       f(x, ...)
     }
