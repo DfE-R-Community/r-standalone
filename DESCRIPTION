@@ -15,4 +15,5 @@ Imports:
     dbplyr,
     dplyr,
     odbc,
-    rlang
+    rlang,
+    vctrs
