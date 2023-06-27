@@ -1,0 +1,8 @@
+default:
+  dwh:
+    driver: "ODBC Driver 17 for SQL Server"
+    server: "T1PRANMSQL\\SQLPROD,60125"
+    database: "DWH_PL"
+    uid: ""
+    pwd: ""
+    trusted: "yes"
