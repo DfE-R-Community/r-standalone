@@ -13,7 +13,7 @@ usethis::use_standalone("DfE-R-Community/r-standalone", "sql-connections")
 usethis::use_standalone("DfE-R-Community/r-standalone")
 ```
 
-# Why Use Standalone Scripts?
+## Why Use Standalone Scripts?
 Standalone scripts have several benefits over code contained in R packages:
 
 *  Once imported, standalone scripts can be easily modified to suit individual 
@@ -26,3 +26,11 @@ Standalone scripts have several benefits over code contained in R packages:
    you only need to take on dependencies for the functionality you actually
    use
    
+
+## Dependencies
+Standalone scripts may consider the following packages to be 'free' dependencies:
+
+*  [rlang](https://github.com/r-lib/rlang)
+*  [cli](https://github.com/r-lib/cli)
+*  [glue](https://github.com/r-lib/glue)
+*  [withr](https://github.com/r-lib/withr)
