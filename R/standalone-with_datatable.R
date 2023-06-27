@@ -76,3 +76,6 @@ with_datatable <- function(x, f, ...) {
   )
   
 }
+
+# Required in packages that use data.table
+.datatable.aware <- TRUE
