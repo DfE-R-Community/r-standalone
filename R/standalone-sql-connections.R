@@ -43,8 +43,8 @@ connect_to_db <- function(db, config_file = "config.yml") {
   
   if (length(missing_fields) > 0L) {
     cli::cli_abort(c(
-      "Required fields missing in {.file {config_file}}",
-      i = "Check {.field {not_found}}"
+      "Required fields missing in {.file {config_file}} section {.field {db}}",
+      i = "Check {.field {missing_fields}}"
     ))
   }
   
@@ -85,10 +85,10 @@ connect_to_table <- function(db, schema, table, con = connect_to_db(db)) {
 #' @param sql_script The SQL script to use
 #' @inheritParams connect_to_table
 #'
-#' @return A tibble
+#' @return A dplyr 'lazy' tibble
 #' @noRd
 read_from_sql <- function(sql_script, db, con = connect_to_db(db)) {
-  sql <- readLines(sql_script)
+  sql <- readLines(sql_script, warn = FALSE)
   line_is_use_statement <- grepl("^\\s*use\\s+", sql)
   
   if (any(line_is_use_statement)) {
@@ -96,7 +96,7 @@ read_from_sql <- function(sql_script, db, con = connect_to_db(db)) {
     lines <- which(line_is_use_statement)
     cli::cli_warn(c(
       "SQL scripts should not contain {.strong USE}-statments",
-      i = "The database to use should be specified in {.file config.yml",
+      i = "The database to use should be specified in {.file config.yml}",
       i = "Check {.file {sql_script}} {cli::qty(n_bad)} line{?s} {.emph {lines}}"
     ))
     sql <- sql[!line_is_use_statement]

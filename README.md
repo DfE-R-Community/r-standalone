@@ -13,6 +13,10 @@ usethis::use_standalone("DfE-R-Community/r-standalone", "sql-connections")
 usethis::use_standalone("DfE-R-Community/r-standalone")
 ```
 
+NB, while this repo uses a package structure, it should not typically be
+installed by users - the package structure is used to facilitate development,
+e.g. unit testing using {testthat}.
+
 ## Why Use Standalone Scripts?
 Standalone scripts have several benefits over code contained in R packages:
 
