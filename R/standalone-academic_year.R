@@ -285,8 +285,6 @@ vec_arith.numeric.academic_year <- function(op, x, y, ...) {
   vec_arith.academic_year.numeric(op, y, x, ...)
 }
 
-
-
 #' @export
 chooseOpsMethod.academic_year <- function(x, y, mx, my, cl, reverse) TRUE
 
