@@ -117,7 +117,10 @@ vec_ptype_abbr.financial_year <- function(x, ...) "fy"
 ## financial_year ----
 
 #' @export
-vec_ptype2.financial_year.financial_year <- function(x, y, ...) new_financial_year()
+vec_ptype2.financial_year.financial_year <- function(x, y, ...) {
+  check_financial_years_have_same_boundary(x, y)
+  new_financial_year(boundary = attr(x, "boundary"))
+}
 
 ## integer ----
 
@@ -139,11 +142,11 @@ vec_ptype2.double.financial_year <- function(x, y, ...) double()
 
 #' @export
 vec_cast.financial_year.financial_year <- function(x, to, ...) {
-  check_years_have_same_boundary(x, to, call = rlang::caller_call())
+  check_financial_years_have_same_boundary(x, to, call = rlang::caller_call())
   x
 }
 
-check_years_have_same_boundary <- function(x, y, trying_to = "combine", call = rlang::caller_call()) {
+check_financial_years_have_same_boundary <- function(x, y, trying_to = "combine", call = rlang::caller_call()) {
   x <- attr(x, "boundary") |> strftime("%d %b")
   y <- attr(y, "boundary") |> strftime("%d %b")
   if (!identical(x, y)) {
@@ -260,7 +263,7 @@ vec_arith.financial_year.default <- function(op, x, y, ...) {
 #' @export
 #' @method vec_arith.financial_year financial_year
 vec_arith.financial_year.financial_year <- function(op, x, y, ...) {
-  check_years_have_same_boundary(x, y, trying_to = "compare", call = rlang::caller_call())
+  check_financial_years_have_same_boundary(x, y, trying_to = "compare", call = rlang::caller_call())
   switch(
     op,
     "-" = new_financial_year(vec_arith_base(op, x, y), attr(x, "boundary")),
