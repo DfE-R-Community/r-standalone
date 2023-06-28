@@ -30,7 +30,7 @@ e.g. unit testing using {testthat}.
    
 *  [`with_datatable`](R/standalone-with_datatable.R): Implements a single
    function for translating {dplyr} code to use {data.table}, which is often
-   quicker
+   faster
 
 ## Why Use Standalone Scripts?
 Standalone scripts have several benefits over code contained in R packages:
