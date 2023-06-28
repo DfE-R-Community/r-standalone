@@ -19,11 +19,11 @@ e.g. unit testing using {testthat}.
 
 ## Contents
 
-*  [`academic_year`](R/standalone-academic_year.R): Implements a {vctrs} class
-   for working with academic years
+*  [`academic_year`](R/standalone-academic_year.R): Implements a {vctrs} S3 
+   class for working with academic years
    
-*  [`financial_year`](R/standalone-financial_year.R): Implements a {vctrs} class
-   for working with financial years
+*  [`financial_year`](R/standalone-financial_year.R): Implements a {vctrs} S3 
+   class for working with financial years
    
 *  [`sql-connections`](R/standalone-sql-connections.R): Easy-to-edit helpers for
    connecting to databases and reading from SQL
