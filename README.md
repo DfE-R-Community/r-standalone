@@ -34,7 +34,8 @@ Standalone scripts have several benefits over code contained in R packages:
 ## Dependencies
 Standalone scripts may consider the following packages to be 'free' dependencies:
 
-*  [rlang](https://github.com/r-lib/rlang)
 *  [cli](https://github.com/r-lib/cli)
-*  [glue](https://github.com/r-lib/glue)
+*  [glue](https://github.com/tidyverse/glue)
+*  [rlang](https://github.com/r-lib/rlang)
+*  [vctrs](https://github.com/r-lib/vctrs)
 *  [withr](https://github.com/r-lib/withr)
