@@ -1,0 +1,296 @@
+# ---
+# repo: DfE-R-Community/r-standalone
+# file: standalone-financial_year.R
+# last-updated: 2023-06-27
+# license: https://unlicense.org
+# dependencies: 
+# imports: [vctrs, cli, rlang]
+# ---
+
+# nocov boundary
+
+# Documentation ----
+
+#' Internal vctrs methods
+#'
+#' @import vctrs
+#' @keywords internal
+#' @name financial_year
+NULL
+
+# Creation ----
+
+#' financial year vector
+#'
+#' @param x 
+#'   * For `financial_year()`: A numeric vector
+#'   * For `as_financial_year()`: An object to coerce
+#'   * For `is_financial_year()`: An object to test
+#' @param boundary A boundary date where the new financial year should begin
+#'
+#' @export
+financial_year <- function(x = integer(), boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
+  x <- vec_cast(x, integer()) 
+  new_financial_year(x, boundary)
+}
+
+new_financial_year <- function(x = integer(), boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
+  stopifnot(
+    is.integer(x), 
+    all(0L < x, x < 9999, na.rm = TRUE),
+    inherits(boundary, "Date"),
+    length(boundary) == 1L
+  )
+  new_vctr(x, class = "financial_year", boundary = boundary)
+}
+
+#' Set the boundary when a new year begins
+#'
+#' @param x An financial year object
+#' @param y A date
+#'
+#' @export
+set_year_boundary <- function(x, y) {
+  stopifnot(
+    is_financial_year(x),
+    inherits(y, "Date"),
+    length(y) == 1L
+  )
+  attr(x, "boundary") <- y
+  x
+}
+
+#' @export
+#' @rdname set_year_boundary
+`year_boundary<-` <- set_year_boundary
+
+#' @export
+is_financial_year <- function(x) {
+  inherits(x, "financial_year")
+}
+
+#' @export
+as_financial_year <- function(x, boundary = getOption("financial_year_boundary", as.Date("2020-04-01")), ...) {
+  UseMethod("as_financial_year")
+}
+
+#' @export
+as_financial_year.default <- function(x, boundary = getOption("financial_year_boundary", as.Date("2020-04-01")), ...) {
+  vec_cast(x, new_financial_year(boundary = boundary))
+}
+
+#' @export
+as_financial_year.character <- function(x, boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
+  correct_format <- grepl("^\\d{4}/\\d{2}$", x) 
+  correct_digits <- ifelse(
+    correct_format,
+    as.integer(substr(x, 3, 4)) == as.integer(substr(x, 6, 7)) - 1L,
+    FALSE
+  )
+  parsable <- correct_format & correct_digits
+  if (!all(parsable)) {
+    cli::cli_warn(c(
+      "Malformed financial years detected",
+      i = "Check {.val {x[!parsable]}}"
+    ))
+  }
+  x[!parsable] <- NA_character_
+  financial_year(as.integer(substr(x, 1, 4)), boundary = boundary)
+}
+
+# Printing ----
+
+#' @export
+format.financial_year <- function(x) {
+  out1 <- formatC(vec_data(x), width = 4L, flag = "0")
+  out2 <- formatC(vec_data(x) + 1L, width = 4L, flag = "0")
+  out <- paste0(out1, "-", substr(out2, 3, 4)) 
+  out[is.na(x)] <- NA_character_
+  out
+}
+
+# Coercion ----
+
+#' @export
+vec_ptype_abbr.financial_year <- function(x, ...) "fy"
+
+## financial_year ----
+
+#' @export
+vec_ptype2.financial_year.financial_year <- function(x, y, ...) {
+  check_financial_years_have_same_boundary(x, y)
+  new_financial_year(boundary = attr(x, "boundary"))
+}
+
+## integer ----
+
+#' @export
+vec_ptype2.financial_year.integer <- function(x, y, ...) integer()
+#' @export
+vec_ptype2.integer.financial_year <- function(x, y, ...) integer()
+
+## double ----
+
+#' @export
+vec_ptype2.financial_year.double <- function(x, y, ...) double()
+#' @export
+vec_ptype2.double.financial_year <- function(x, y, ...) double()
+
+# Casting ----
+
+## financial_year ----
+
+#' @export
+vec_cast.financial_year.financial_year <- function(x, to, ...) {
+  check_financial_years_have_same_boundary(x, to, call = rlang::caller_call())
+  x
+}
+
+check_financial_years_have_same_boundary <- function(x, y, trying_to = "combine", call = rlang::caller_call()) {
+  x <- attr(x, "boundary") |> strftime("%d %b")
+  y <- attr(y, "boundary") |> strftime("%d %b")
+  if (!identical(x, y)) {
+    cli::cli_abort(
+      c(
+        "Cannot {trying_to} financial years with different boundaries",
+        i = "Boundaries are {.val {x}} and {.val {y}}",
+        i = "Use {.fun set_year_boundary} to update a boundary manually"
+      ),
+      call = call
+    )
+  }
+}
+
+## character ----
+
+#' @export
+vec_cast.character.financial_year <- function(x, to, ...) format(x)
+#' @export
+vec_cast.financial_year.character <- function(x, to, ...) format(x)
+
+## integer ----
+
+#' @export
+vec_cast.integer.financial_year <- function(x, to, ...) vec_data(x)
+#' @export
+vec_cast.financial_year.integer <- function(x, to, ...) financial_year(x)
+
+## double ----
+
+#' @export
+vec_cast.double.financial_year <- function(x, to, ...) as.double(vec_data(x))
+#' @export
+vec_cast.financial_year.double <- function(x, to, ...) {
+  if (any(x - floor(x) != 0)) {
+    cli::cli_abort(
+      "Cannot coerce decimal to financial year", 
+      call = rlang::caller_fn()
+    )
+  }
+  financial_year(x)
+}
+
+## Date ----
+
+#' @export
+vec_cast.Date.financial_year <- function(x, to, ...) {
+  if (length(x) == 0L) {
+    return(new_date())
+  }
+  boundary <- strftime(attr(x, "boundary"), "-%m-%d")
+  as.Date(paste0(as.integer(x), boundary))
+}
+
+#' @export
+vec_cast.financial_year.Date <- function(x, to, ...) {
+  boundary       <- attr(to, "boundary") 
+  fmt            <- function(x, f) as.integer(strftime(x, f))
+  boundary_month <- fmt(boundary, "%m")
+  boundary_day   <- fmt(boundary, "%d")
+  x_year         <- fmt(x, "%Y")
+  x_month        <- fmt(x, "%m")
+  x_day          <- fmt(x, "%d")
+  
+  out_year <- ifelse(
+    x_month > boundary_month | (x_month == boundary_month & x_day >= boundary_day),
+    x_year, x_year - 1L
+  )
+  
+  financial_year(out_year, boundary = boundary)
+}
+
+## POSIXct ----
+
+#' @export
+vec_cast.financial_year.POSIXct <- function(x, to, ...) as_financial_year(as.Date(x))
+#' @export
+vec_cast.POSIXct.financial_year <- function(x, to, ...) as.POSIXct(as.Date(x))
+
+## POSIXlt ----
+
+#' @export
+vec_cast.financial_year.POSIXlt <- function(x, to, ...) as_financial_year(as.Date(x))
+#' @export
+vec_cast.POSIXlt.financial_year <- function(x, to, ...) as.POSIXlt(as.Date(x))
+
+
+# Math ----
+
+#' @export
+vec_math.financial_year <- function(.fn, .x, ...) {
+  switch(
+    .fn,
+    median = financial_year(median(vec_data(.x)), boundary = attr(.x, "boundary")),
+    cli::cli_abort("{.fun {.fn}} not implemented for financial years")
+  )
+}
+
+# Arithmetic ----
+
+#' @export
+#' @method vec_arith financial_year
+vec_arith.financial_year <- function(op, x, y, ...) {
+  UseMethod("vec_arith.financial_year", y)
+}
+
+#' @export
+#' @method vec_arith.financial_year default
+vec_arith.financial_year.default <- function(op, x, y, ...) {
+  stop_incompatible_op(op, x, y)
+}
+
+
+#' @export
+#' @method vec_arith.financial_year financial_year
+vec_arith.financial_year.financial_year <- function(op, x, y, ...) {
+  check_financial_years_have_same_boundary(x, y, trying_to = "compare", call = rlang::caller_call())
+  switch(
+    op,
+    "-" = new_financial_year(vec_arith_base(op, x, y), attr(x, "boundary")),
+    stop_incompatible_op(op, x, y)
+  )
+}
+
+#' @export
+#' @method vec_arith.financial_year numeric
+vec_arith.financial_year.numeric <- function(op, x, y, ...) {
+  switch(
+    op,
+    "+" = ,
+    "-" = new_financial_year(vec_arith_base(op, x, vec_cast(y, integer())), attr(x, "boundary")),
+    stop_incompatible_op(op, x, y)
+  )
+}
+
+#' @export
+#' @method vec_arith.numeric financial_year
+vec_arith.numeric.financial_year <- function(op, x, y, ...) {
+  vec_arith.financial_year.numeric(op, y, x, ...)
+}
+
+
+
+#' @export
+chooseOpsMethod.financial_year <- function(x, y, mx, my, cl, reverse) TRUE
+
+# nocov end
