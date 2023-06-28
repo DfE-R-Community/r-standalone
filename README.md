@@ -17,6 +17,21 @@ NB, while this repo uses a package structure, it should not typically be
 installed by users - the package structure is used to facilitate development,
 e.g. unit testing using {testthat}.
 
+## Contents
+
+*  [`academic_year`](R/standalone-academic_year.R): Implements a {vctrs} class
+   for working with academic years
+   
+*  [`financial_year`](R/standalone-financial_year.R): Implements a {vctrs} class
+   for working with financial years
+   
+*  [`sql-connections`](R/standalone-sql-connections.R): Easy-to-edit helpers for
+   connecting to databases and reading from SQL
+   
+*  [`with_datatable`](R/standalone-with_datatable.R): Implements a single
+   function for translating {dplyr} code to use {data.table}, which is often
+   quicker
+
 ## Why Use Standalone Scripts?
 Standalone scripts have several benefits over code contained in R packages:
 
