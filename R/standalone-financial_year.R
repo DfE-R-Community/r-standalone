@@ -1,7 +1,7 @@
 # ---
 # repo: DfE-R-Community/r-standalone
 # file: standalone-financial_year.R
-# last-updated: 2023-06-27
+# last-updated: 2023-06-29
 # license: https://unlicense.org
 # dependencies: 
 # imports: [vctrs, cli, rlang]
@@ -30,6 +30,9 @@ NULL
 #'
 #' @export
 financial_year <- function(x = integer(), boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
+  if (is.Date(x) || is.POSIXct(x) || is.POSIXlt(x) || is.POSIXt(x)) {
+    return(as_financial_year(x, boundary))
+  }
   x <- vec_cast(x, integer()) 
   new_financial_year(x, boundary)
 }
@@ -37,7 +40,7 @@ financial_year <- function(x = integer(), boundary = getOption("financial_year_b
 new_financial_year <- function(x = integer(), boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
   stopifnot(
     is.integer(x), 
-    all(0L < x, x < 9999, na.rm = TRUE),
+    all(0L <= x, x < 9999, na.rm = TRUE),
     inherits(boundary, "Date"),
     length(boundary) == 1L
   )
@@ -46,13 +49,12 @@ new_financial_year <- function(x = integer(), boundary = getOption("financial_ye
 
 #' Set the boundary when a new year begins
 #'
-#' @param x An financial year object
+#' @param x An financial/academic year object
 #' @param y A date
 #'
 #' @export
 set_year_boundary <- function(x, y) {
   stopifnot(
-    is_financial_year(x),
     inherits(y, "Date"),
     length(y) == 1L
   )
@@ -101,7 +103,7 @@ as_financial_year.character <- function(x, boundary = getOption("financial_year_
 # Printing ----
 
 #' @export
-format.financial_year <- function(x) {
+format.financial_year <- function(x, ...) {
   out1 <- formatC(vec_data(x), width = 4L, flag = "0")
   out2 <- formatC(vec_data(x) + 1L, width = 4L, flag = "0")
   out <- paste0(out1, "-", substr(out2, 3, 4)) 
@@ -181,7 +183,7 @@ vec_cast.financial_year.integer <- function(x, to, ...) financial_year(x)
 vec_cast.double.financial_year <- function(x, to, ...) as.double(vec_data(x))
 #' @export
 vec_cast.financial_year.double <- function(x, to, ...) {
-  if (any(x - floor(x) != 0)) {
+  if (any(x - floor(x) != 0, na.rm = TRUE)) {
     cli::cli_abort(
       "Cannot coerce decimal to financial year", 
       call = rlang::caller_fn()
@@ -233,6 +235,13 @@ vec_cast.financial_year.POSIXlt <- function(x, to, ...) as_financial_year(as.Dat
 #' @export
 vec_cast.POSIXlt.financial_year <- function(x, to, ...) as.POSIXlt(as.Date(x))
 
+## POSIXt ----
+
+#' @export
+vec_cast.financial_year.POSIXt <- function(x, to, ...) as_financial_year(as.Date(x))
+#' @export
+vec_cast.POSIXt.financial_year <- function(x, to, ...) as.POSIXt(as.Date(x))
+
 
 # Math ----
 
@@ -240,8 +249,15 @@ vec_cast.POSIXlt.financial_year <- function(x, to, ...) as.POSIXlt(as.Date(x))
 vec_math.financial_year <- function(.fn, .x, ...) {
   switch(
     .fn,
-    median = financial_year(median(vec_data(.x)), boundary = attr(.x, "boundary")),
-    cli::cli_abort("{.fun {.fn}} not implemented for financial years")
+    prod = , sqrt = , log = , log10 = , log2 = , log1p = , acos = , acosh = ,
+    asin = , asinh = ,  atan = , atanh = , exp = , expm1 = , cos= , cosh = , 
+    cospi = , sin = , sinh = , sinpi = , tan = , tanh = , tanpi = , gamma = , 
+    lgamma = , digamma = , trigamma = , 
+    mean = cli::cli_abort(
+      "{.fun { .fn}} not implemented for {.class {vec_ptype_full(.x)}}",
+      call = rlang::caller_call()
+    ),
+    financial_year(vec_math_base(.fn, .x, ...), boundary = attr(.x, "boundary"))
   )
 }
 
@@ -253,12 +269,15 @@ vec_arith.financial_year <- function(op, x, y, ...) {
   UseMethod("vec_arith.financial_year", y)
 }
 
+## default ----
+
 #' @export
 #' @method vec_arith.financial_year default
 vec_arith.financial_year.default <- function(op, x, y, ...) {
   stop_incompatible_op(op, x, y)
 }
 
+## financial_year ----
 
 #' @export
 #' @method vec_arith.financial_year financial_year
@@ -267,9 +286,12 @@ vec_arith.financial_year.financial_year <- function(op, x, y, ...) {
   switch(
     op,
     "-" = new_financial_year(vec_arith_base(op, x, y), attr(x, "boundary")),
+    # new_financial_year(vec_arith_base(op, x, y), boundary = attr(x, "boundary"))
     stop_incompatible_op(op, x, y)
   )
 }
+
+## numeric ----
 
 #' @export
 #' @method vec_arith.financial_year numeric
@@ -288,9 +310,58 @@ vec_arith.numeric.financial_year <- function(op, x, y, ...) {
   vec_arith.financial_year.numeric(op, y, x, ...)
 }
 
-
+## logical ----
 
 #' @export
+#' @method vec_arith.financial_year logical
+vec_arith.financial_year.logical <- function(op, x, y, ...) {
+  switch(
+    op,
+    "!" = , "&" = , "|" = vec_arith_base(op, x, y),
+    stop_incompatible_op(op, x, y)
+  )
+}
+
+#' @export
+#' @method vec_arith.logical financial_year
+vec_arith.logical.financial_year <- vec_arith.financial_year.logical
+
+# Misc ----
+
+## Ops ----
+
+# This tells R to use Ops generic for <financial_year> instead of base classes,
+# e.g. when doing financial_year(2021) + Sys.time(). This means that, in 
+# such cases, you reliably get an informative error instead of a warning 
+# and a nonsensical value. Only works in R >=4.3.0.
+#' @export
 chooseOpsMethod.financial_year <- function(x, y, mx, my, cl, reverse) TRUE
+
+## ggplot2 ----
+
+# Used by ggplot2 to automatically pick scale_(x|y)_financial_year
+#' @export
+scale_type.financial_year <- function(x) c("financial_year", "continuous")
+
+#' Position scales for financial years
+#'
+#' @param labels,... Passed to `ggplot2::scale_(x|y)_continuous()` 
+#'
+#' @export
+scale_x_financial_year <- function(labels = ~ format(financial_year(.)), ...) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    cli::cli_abort("Package {.pkg ggplot2} is not installed")
+  }
+  ggplot2::scale_x_continuous(labels = labels, ...)
+}
+
+#' @export
+#' @rdname scale_x_financial_year
+scale_x_financial_year <- function(labels = ~ format(financial_year(.)), ...) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    cli::cli_abort("Package {.pkg ggplot2} is not installed")
+  }
+  ggplot2::scale_x_continuous(labels = labels, ...)
+}
 
 # nocov end

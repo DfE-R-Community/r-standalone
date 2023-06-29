@@ -20,3 +20,5 @@ Imports:
     odbc,
     rlang,
     vctrs
+Suggests: 
+    ggplot2

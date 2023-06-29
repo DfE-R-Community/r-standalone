@@ -15,7 +15,7 @@ set_year_boundary(x, y)
 year_boundary(x, y) <- value
 }
 \arguments{
-\item{x}{An financial year object}
+\item{x}{An financial/academic year object}
 
 \item{y}{A date}
 }
