@@ -1,7 +1,7 @@
 # ---
 # repo: DfE-R-Community/r-standalone
 # file: standalone-academic_year.R
-# last-updated: 2023-06-27
+# last-updated: 2023-06-29
 # license: https://unlicense.org
 # dependencies: 
 # imports: [vctrs, cli, rlang]
@@ -30,6 +30,9 @@ NULL
 #'
 #' @export
 academic_year <- function(x = integer(), boundary = getOption("academic_year_boundary", as.Date("2020-08-01"))) {
+  if (is.Date(x) || is.POSIXct(x) || is.POSIXlt(x) || is.POSIXt(x)) {
+    return(as_academic_year(x, boundary))
+  }
   x <- vec_cast(x, integer()) 
   new_academic_year(x, boundary)
 }
@@ -37,7 +40,7 @@ academic_year <- function(x = integer(), boundary = getOption("academic_year_bou
 new_academic_year <- function(x = integer(), boundary = getOption("academic_year_boundary", as.Date("2020-08-01"))) {
   stopifnot(
     is.integer(x), 
-    all(0L < x, x < 9999, na.rm = TRUE),
+    all(0L <= x, x < 9999, na.rm = TRUE),
     inherits(boundary, "Date"),
     length(boundary) == 1L
   )
@@ -46,13 +49,12 @@ new_academic_year <- function(x = integer(), boundary = getOption("academic_year
 
 #' Set the boundary when a new year begins
 #'
-#' @param x An academic year object
+#' @param x An academic/financial year object
 #' @param y A date
 #'
 #' @export
 set_year_boundary <- function(x, y) {
   stopifnot(
-    is_academic_year(x),
     inherits(y, "Date"),
     length(y) == 1L
   )
@@ -101,7 +103,7 @@ as_academic_year.character <- function(x, boundary = getOption("academic_year_bo
 # Printing ----
 
 #' @export
-format.academic_year <- function(x) {
+format.academic_year <- function(x, ...) {
   out1 <- formatC(vec_data(x), width = 4L, flag = "0")
   out2 <- formatC(vec_data(x) + 1L, width = 4L, flag = "0")
   out <- paste0(out1, "/", substr(out2, 3, 4)) 
@@ -181,7 +183,7 @@ vec_cast.academic_year.integer <- function(x, to, ...) academic_year(x)
 vec_cast.double.academic_year <- function(x, to, ...) as.double(vec_data(x))
 #' @export
 vec_cast.academic_year.double <- function(x, to, ...) {
-  if (any(x - floor(x) != 0)) {
+  if (any(x - floor(x) != 0, na.rm = TRUE)) {
     cli::cli_abort(
       "Cannot coerce decimal to academic year", 
       call = rlang::caller_fn()
@@ -233,6 +235,12 @@ vec_cast.academic_year.POSIXlt <- function(x, to, ...) as_academic_year(as.Date(
 #' @export
 vec_cast.POSIXlt.academic_year <- function(x, to, ...) as.POSIXlt(as.Date(x))
 
+## POSIXt ----
+
+#' @export
+vec_cast.academic_year.POSIXt <- function(x, to, ...) as_academic_year(as.Date(x))
+#' @export
+vec_cast.POSIXt.academic_year <- function(x, to, ...) as.POSIXt(as.Date(x))
 
 # Math ----
 
@@ -240,8 +248,15 @@ vec_cast.POSIXlt.academic_year <- function(x, to, ...) as.POSIXlt(as.Date(x))
 vec_math.academic_year <- function(.fn, .x, ...) {
   switch(
     .fn,
-    median = academic_year(median(vec_data(.x)), boundary = attr(.x, "boundary")),
-    cli::cli_abort("{.fun {.fn}} not implemented for academic years")
+    prod = , sqrt = , log = , log10 = , log2 = , log1p = , acos = , acosh = ,
+    asin = , asinh = ,  atan = , atanh = , exp = , expm1 = , cos= , cosh = , 
+    cospi = , sin = , sinh = , sinpi = , tan = , tanh = , tanpi = , gamma = , 
+    lgamma = , digamma = , trigamma = , 
+    mean = cli::cli_abort(
+      "{.fun { .fn}} not implemented for {.class {vec_ptype_full(.x)}}",
+      call = rlang::caller_call()
+    ),
+    academic_year(vec_math_base(.fn, .x, ...), boundary = attr(.x, "boundary"))
   )
 }
 
@@ -253,12 +268,15 @@ vec_arith.academic_year <- function(op, x, y, ...) {
   UseMethod("vec_arith.academic_year", y)
 }
 
+## default ----
+
 #' @export
 #' @method vec_arith.academic_year default
 vec_arith.academic_year.default <- function(op, x, y, ...) {
   stop_incompatible_op(op, x, y)
 }
 
+## academic_year ----
 
 #' @export
 #' @method vec_arith.academic_year academic_year
@@ -267,9 +285,12 @@ vec_arith.academic_year.academic_year <- function(op, x, y, ...) {
   switch(
     op,
     "-" = new_academic_year(vec_arith_base(op, x, y), attr(x, "boundary")),
+    # new_academic_year(vec_arith_base(op, x, y), boundary = attr(x, "boundary"))
     stop_incompatible_op(op, x, y)
   )
 }
+
+## numeric ----
 
 #' @export
 #' @method vec_arith.academic_year numeric
@@ -288,7 +309,58 @@ vec_arith.numeric.academic_year <- function(op, x, y, ...) {
   vec_arith.academic_year.numeric(op, y, x, ...)
 }
 
+## logical ----
+
+#' @export
+#' @method vec_arith.academic_year logical
+vec_arith.academic_year.logical <- function(op, x, y, ...) {
+  switch(
+    op,
+    "!" = , "&" = , "|" = vec_arith_base(op, x, y),
+    stop_incompatible_op(op, x, y)
+  )
+}
+
+#' @export
+#' @method vec_arith.logical academic_year
+vec_arith.logical.academic_year <- vec_arith.academic_year.logical
+  
+# Misc ----
+
+## Ops ----
+
+# This tells R to use Ops generic for <academic_year> instead of base classes,
+# e.g. when doing academic_year(2021) + Sys.time(). This means that, in 
+# such cases, you reliably get an informative error instead of a warning 
+# and a nonsensical value. Only works in R >=4.3.0.
 #' @export
 chooseOpsMethod.academic_year <- function(x, y, mx, my, cl, reverse) TRUE
+
+## ggplot2 ----
+
+# Used by ggplot2 to automatically pick scale_(x|y)_academic_year
+#' @export
+scale_type.academic_year <- function(x) c("academic_year", "continuous")
+
+#' Position scales for academic years
+#'
+#' @param labels,... Passed to `ggplot2::scale_(x|y)_continuous()` 
+#'
+#' @export
+scale_x_academic_year <- function(labels = ~ format(academic_year(.)), ...) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    cli::cli_abort("Package {.pkg ggplot2} is not installed")
+  }
+  ggplot2::scale_x_continuous(labels = labels, ...)
+}
+
+#' @export
+#' @rdname scale_x_academic_year
+scale_x_academic_year <- function(labels = ~ format(academic_year(.)), ...) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    cli::cli_abort("Package {.pkg ggplot2} is not installed")
+  }
+  ggplot2::scale_x_continuous(labels = labels, ...)
+}
 
 # nocov end

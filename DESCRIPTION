@@ -14,9 +14,12 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
     cli,
+    config,
     DBI,
     dbplyr,
     dplyr,
     odbc,
     rlang,
     vctrs
+Suggests: 
+    ggplot2
