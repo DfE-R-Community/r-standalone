@@ -2,6 +2,12 @@ test_that("(academic|financial)_year works", {
   expect_equal(length(academic_year()), 0)
   expect_equal(length(financial_year()), 0)
   
+  expect_equal(academic_year(2020), academic_year(as.Date("2020-08-01")))
+  expect_equal(financial_year(2020), financial_year(as.Date("2020-04-01")))
+  
+  expect_equal(academic_year(2019), academic_year(as.Date("2020-07-31")))
+  expect_equal(financial_year(2019), financial_year(as.Date("2020-03-31")))
+  
   expect_equal(academic_year(2020) + 1, academic_year(2021))
   expect_equal(financial_year(2020) + 1, financial_year(2021))
   
