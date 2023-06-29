@@ -4,7 +4,7 @@ test_that("SQL connections work", {
   
   tryCatch(
     con <- connect_to_db("dwh"),
-    error = function(e) skip("Could not connect to DWH_PL")
+    error = function(e) skip(glue::glue("Could not connect to DWH_PL. Issue: {e$message}"))
   )
   
   expect_no_error(
