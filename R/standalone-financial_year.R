@@ -83,17 +83,17 @@ as_financial_year.default <- function(x, boundary = getOption("financial_year_bo
 
 #' @export
 as_financial_year.character <- function(x, boundary = getOption("financial_year_boundary", as.Date("2020-04-01"))) {
-  correct_format <- grepl("^\\d{4}/\\d{2}$", x) 
+  correct_format <- grepl("^\\d{4}-\\d{2}$", x) 
   correct_digits <- ifelse(
     correct_format,
-    as.integer(substr(x, 3, 4)) == as.integer(substr(x, 6, 7)) - 1L,
+    suppressWarnings(as.integer(substr(x, 3, 4)) == as.integer(substr(x, 6, 7)) - 1L),
     FALSE
   )
   parsable <- correct_format & correct_digits
   if (!all(parsable)) {
     cli::cli_warn(c(
       "Malformed financial years detected",
-      i = "Check {.val {x[!parsable]}}"
+      i = "Check {.val {unique(x[!parsable])}}"
     ))
   }
   x[!parsable] <- NA_character_

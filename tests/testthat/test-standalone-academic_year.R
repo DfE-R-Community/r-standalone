@@ -14,6 +14,15 @@ test_that("(academic|financial)_year works", {
   expect_error(c(academic_year(2020, as.Date("2020-01-01")), academic_year(2020, as.Date("2020-02-01"))))
   expect_error(c(financial_year(2020, as.Date("2020-01-01")), financial_year(2020, as.Date("2020-02-01"))))
   
+  expect_equal(as_academic_year("2021/22"), academic_year(2021))
+  expect_equal(as_financial_year("2021-22"), financial_year(2021))
+  
+  expect_warning(as_academic_year("2021-22"))
+  expect_warning(as_financial_year("2021/22"))
+  
+  expect_warning(as_academic_year("2021/21"))
+  expect_warning(as_financial_year("2021-21"))
+  
   expect_error(academic_year(2020) + 1.5)
   expect_error(financial_year(2020) + 1.5)
   
@@ -27,6 +36,8 @@ test_that("(academic|financial)_year works", {
 })
 
 test_that("(academic|financial)_year works with ggplot2", {
+  
+  skip_if_not_installed("ggplot2")
   
   plot_data <- data_frame(
     date = seq.Date(as.Date("2020-01-01"), as.Date("2029-01-01"), by = "1 year"),
