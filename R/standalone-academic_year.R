@@ -86,14 +86,14 @@ as_academic_year.character <- function(x, boundary = getOption("academic_year_bo
   correct_format <- grepl("^\\d{4}/\\d{2}$", x) 
   correct_digits <- ifelse(
     correct_format,
-    as.integer(substr(x, 3, 4)) == as.integer(substr(x, 6, 7)) - 1L,
+    suppressWarnings(as.integer(substr(x, 3, 4)) == as.integer(substr(x, 6, 7)) - 1L),
     FALSE
   )
   parsable <- correct_format & correct_digits
   if (!all(parsable)) {
     cli::cli_warn(c(
       "Malformed academic years detected",
-      i = "Check {.val {x[!parsable]}}"
+      i = "Check {.val {unique(x[!parsable])}}"
     ))
   }
   x[!parsable] <- NA_character_
